@@ -1,0 +1,95 @@
+{
+    "Aircraft": {
+        "D213": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 805,
+            "Departure Time": 845
+        },
+        "AT-LX-2Y2": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 845,
+            "Departure Time": 865
+        },
+        "NW-19-1A": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 945,
+            "Departure Time": 965
+        }
+    },
+    "Forklifts": {
+        "F01": [
+            {
+                "Hangar": "North Hangar",
+                "Start": 735,
+                "End": 740,
+                "Type": "load"
+            },
+            {
+                "Hangar": "North Hangar",
+                "Start": 745,
+                "End": 750,
+                "Type": "load"
+            },
+            {
+                "Hangar": "North Hangar",
+                "Start": 755,
+                "End": 760,
+                "Type": "load"
+            },
+            {
+                "Hangar": "North Hangar",
+                "Start": 805,
+                "End": 825,
+                "Type": "unload"
+            },
+            {
+                "Hangar": "North Hangar",
+                "Start": 845,
+                "End": 865,
+                "Type": "unload"
+            },
+            {
+                "Hangar": "North Hangar",
+                "Start": 945,
+                "End": 965,
+                "Type": "unload"
+            },
+            {
+                "Hangar": "North Hangar",
+                "Start": 1020,
+                "End": 1025,
+                "Type": "load"
+            }
+        ],
+        "F02": [
+            {
+                "Hangar": "North Hangar",
+                "Start": 805,
+                "End": 825,
+                "Type": "unload"
+            }
+        ]
+    },
+    "Trucks": {
+        "PK2-341": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 735,
+            "Departure Time": 740
+        },
+        "JLX-9828": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 745,
+            "Departure Time": 750
+        },
+        "TX-241-Y": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 755,
+            "Departure Time": 760
+        },
+        "ADR-005": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 1020,
+            "Departure Time": 1025
+        }
+    }
+}
