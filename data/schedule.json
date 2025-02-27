@@ -1,5 +1,5 @@
 {
-    "Aircraft": {
+    "aircraft": {
         "D213": {
             "Hangar": "North Hangar",
             "Arrival Time": 805,
@@ -16,7 +16,29 @@
             "Departure Time": 965
         }
     },
-    "Forklifts": {
+    "trucks": {
+        "PK2-341": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 735,
+            "Departure Time": 740
+        },
+        "JLX-9828": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 745,
+            "Departure Time": 750
+        },
+        "TX-241-Y": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 755,
+            "Departure Time": 760
+        },
+        "ADR-005": {
+            "Hangar": "North Hangar",
+            "Arrival Time": 1020,
+            "Departure Time": 1025
+        }
+    },
+    "forklifts": {
         "F01": [
             {
                 "Hangar": "North Hangar",
@@ -69,27 +91,5 @@
                 "Type": "unload"
             }
         ]
-    },
-    "Trucks": {
-        "PK2-341": {
-            "Hangar": "North Hangar",
-            "Arrival Time": 735,
-            "Departure Time": 740
-        },
-        "JLX-9828": {
-            "Hangar": "North Hangar",
-            "Arrival Time": 745,
-            "Departure Time": 750
-        },
-        "TX-241-Y": {
-            "Hangar": "North Hangar",
-            "Arrival Time": 755,
-            "Departure Time": 760
-        },
-        "ADR-005": {
-            "Hangar": "North Hangar",
-            "Arrival Time": 1020,
-            "Departure Time": 1025
-        }
     }
 }

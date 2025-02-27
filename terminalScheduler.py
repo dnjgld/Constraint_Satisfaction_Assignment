@@ -178,31 +178,31 @@ def generate_schedule(meta, aircraft, trucks):
     solution = schedule_aircraft(initial_schedule, 0, sorted_aircraft, sorted_trucks, hangars, forklifts, stop_time)
     if solution:
         output = {
-            'Aircraft': {},
-            'Forklifts': {},
-            'Trucks': {}
+            'aircraft': {},
+            'trucks': {},
+            'forklifts': {}
         }
         for ac, details in solution.aircraft_schedule.items():
-            output['Aircraft'][ac] = {
+            output['aircraft'][ac] = {
+                'Hangar': details['Hangar'],
+                'Arrival Time': details['Arrival Time'],
+                'Departure Time': details['Departure Time']
+            }
+        for truck, details in solution.truck_schedule.items():
+            output['trucks'][truck] = {
                 'Hangar': details['Hangar'],
                 'Arrival Time': details['Arrival Time'],
                 'Departure Time': details['Departure Time']
             }
         for fl, tasks in solution.forklift_assignments.items():
-            output['Forklifts'][fl] = []
+            output['forklifts'][fl] = []
             for task in tasks:
-                output['Forklifts'][fl].append({
+                output['forklifts'][fl].append({
                     'Hangar': task['Hangar'],
                     'Start': task['Start'],
                     'End': task['End'],
                     'Type': task['Type']
                 })
-        for truck, details in solution.truck_schedule.items():
-            output['Trucks'][truck] = {
-                'Hangar': details['Hangar'],
-                'Arrival Time': details['Arrival Time'],
-                'Departure Time': details['Departure Time']
-            }
         return output
     else:
         return {
