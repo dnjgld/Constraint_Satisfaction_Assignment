@@ -1,10 +1,7 @@
-# I collaborate with Jiaying He on this assignment.
-# We watched the video "Constraint-Satisfaction Problems in Python" on youtube to learn the backtracking algorithm solution.
-# I also watched the video: "Constraint Satisfaction the AC-3 algorithm" but not used in this assignment
-
 from copy import deepcopy
 import json
 import sys
+import math
 
 #######################
 ### Basic functions ###
@@ -21,19 +18,16 @@ def write_json(file_path, data):
 def round_to_nearest_five(minutes):
     return 5 * round(minutes / 5)
 
-# convert time in HHMM format to minutes after 00:00
 def time_to_minutes(time):
     hours = time // 100
     minutes = time % 100
     return hours * 60 + minutes
 
-# convert minutes after 00:00 to time in HHMM format
 def minutes_to_time(minutes_m):
     hours = minutes_m // 60
     minutes = minutes_m % 60
     return hours * 100 + minutes
 
-# a class to store the schedule information
 class Schedule:
     def __init__(self, aircraft=None, hangars=None, forklifts=None):
         self.aircraft = aircraft
@@ -54,15 +48,12 @@ class Schedule:
         copy_schedule.hangar_trucks = deepcopy(self.hangar_trucks)
         copy_schedule.cargo_count = deepcopy(self.cargo_count)
         return copy_schedule
-    
+
 #######################
 ## Schedule functions #
 #######################
 
-# first schedule the aircrafts, 
-# if successful, schedule the trucks
 def schedule_aircraft(schedule, aircraft_idx, aircraft, trucks, hangars, forklifts, stop_time):
-    # all aircrafts are scheduled, then schedule the trucks
     if aircraft_idx >= len(aircraft):
         return schedule_trucks(schedule, 0, trucks, hangars, forklifts, stop_time)
     
@@ -70,43 +61,47 @@ def schedule_aircraft(schedule, aircraft_idx, aircraft, trucks, hangars, forklif
     ac_time_m = time_to_minutes(ac_info['Time'])
     ac_cargo = ac_info['Cargo']
 
-    # schedule the aircraft in each hangar
+    # Find the hangar with the earliest available slot
+    hangar_options = []
     for hangar in hangars:
         planes = schedule.hangar_planes[hangar]
-        last_departure = planes[-1]['Departure Time'] if planes else 0
-        last_departure_m = time_to_minutes(last_departure)
-        
-        for arrival_time_m in range(max(ac_time_m, last_departure_m), time_to_minutes(stop_time) + 1, 5):
+        last_departure_m = time_to_minutes(planes[-1]['Departure Time']) if planes else 0
+        earliest_start_m = max(ac_time_m, last_departure_m)
+        hangar_options.append((earliest_start_m, hangar))
+    
+    # Sort the hangars by earliest available slot
+    hangar_options.sort(key=lambda x: x[0])
+    for earliest_start_m, hangar in hangar_options:
+        max_possible_duration = 20 * ac_cargo
+        # My previous solution was fixing the duration to 20 minutes*ac_cargo, but this is not correct
+        # Try all possible arrival times and durations
+        for arrival_time_m in range(earliest_start_m, time_to_minutes(stop_time) + 1, 5):
             arrival_time_m = round_to_nearest_five(arrival_time_m)
-            new_schedule = schedule.clone()
-            duration_m = 20 * ac_cargo
-            required_time_m = duration_m
-            departure_time_m = arrival_time_m + required_time_m
-
-            # if the departure time exceeds the stop time, skip this hangar
-            if departure_time_m > time_to_minutes(stop_time):
-                continue
-            new_schedule.hangar_planes[hangar].append({
-                'Arrival Time': minutes_to_time(arrival_time_m),
-                'Departure Time': minutes_to_time(departure_time_m),
-                'Cargo': ac_cargo
-            })
-            new_schedule.aircraft_schedule[ac_name] = {
-                'Hangar': hangar,
-                'Arrival Time': minutes_to_time(arrival_time_m),
-                'Departure Time': minutes_to_time(departure_time_m)
-            }
-            # update the cargo count in the hangar
-            new_schedule.cargo_count[hangar] += ac_cargo
-            result = schedule_aircraft(new_schedule, aircraft_idx + 1, aircraft, trucks, hangars, forklifts, stop_time)
-            if result:
-                return result
+            for duration_m in range(20, max_possible_duration + 1, 5):
+                duration_m = round_to_nearest_five(duration_m)
+                if duration_m < 20:
+                    continue
+                departure_time_m = arrival_time_m + duration_m
+                if departure_time_m > time_to_minutes(stop_time):
+                    continue
+                new_schedule = schedule.clone()
+                new_schedule.hangar_planes[hangar].append({
+                    'Arrival Time': minutes_to_time(arrival_time_m),
+                    'Departure Time': minutes_to_time(departure_time_m),
+                    'Cargo': ac_cargo
+                })
+                new_schedule.aircraft_schedule[ac_name] = {
+                    'Hangar': hangar,
+                    'Arrival Time': minutes_to_time(arrival_time_m),
+                    'Departure Time': minutes_to_time(departure_time_m)
+                }
+                new_schedule.cargo_count[hangar] += ac_cargo
+                result = schedule_aircraft(new_schedule, aircraft_idx + 1, aircraft, trucks, hangars, forklifts, stop_time)
+                if result:
+                    return result
     return None
 
-# then schedule the trucks
-# if successful, check and assign forklifts
 def schedule_trucks(schedule, truck_idx, trucks, hangars, forklifts, stop_time):
-    # all trucks are scheduled, then check and assign forklifts
     if truck_idx >= len(trucks):
         return check_and_assign_forklifts(schedule, hangars, forklifts)
     
@@ -114,19 +109,21 @@ def schedule_trucks(schedule, truck_idx, trucks, hangars, forklifts, stop_time):
     truck_arrival_m = time_to_minutes(truck_arrival)
 
     for hangar in hangars:
-        required_cargo = schedule.cargo_count[hangar]
+        required = schedule.cargo_count[hangar]
         current_trucks = len([t for t in schedule.truck_schedule.values() if t['Hangar'] == hangar])
-        if current_trucks >= required_cargo:
+        if current_trucks >= required:
             continue
         new_schedule = schedule.clone()
         trucks_in_hangar = new_schedule.hangar_trucks[hangar]
-        last_departure = trucks_in_hangar[-1]['Departure Time'] if trucks_in_hangar else 0
-        last_departure_m = time_to_minutes(last_departure)
-        earliest_start_m = max(truck_arrival_m, last_departure_m)
+
+        planes_in_hangar = new_schedule.hangar_planes[hangar]
+        last_plane_departure_m = max([time_to_minutes(p['Departure Time']) for p in schedule.hangar_planes[hangar]], default=0)
+        last_truck_departure_m = max([time_to_minutes(t['Departure Time']) for t in schedule.hangar_trucks[hangar]], default=0)
+       
+        earliest_start_m = max(truck_arrival_m, last_plane_departure_m, last_truck_departure_m)
         arrival_time_m = round_to_nearest_five(earliest_start_m)
         departure_time_m = arrival_time_m + 5
 
-        # if the departure time exceeds the stop time, skip this hangar
         if departure_time_m > time_to_minutes(stop_time):
             continue
         new_schedule.hangar_trucks[hangar].append({
@@ -143,7 +140,6 @@ def schedule_trucks(schedule, truck_idx, trucks, hangars, forklifts, stop_time):
             return result
     return None
 
-# check and assign forklifts
 def check_and_assign_forklifts(schedule, hangars, forklifts):
     for hangar in hangars:
         required = schedule.cargo_count[hangar]
@@ -154,15 +150,22 @@ def check_and_assign_forklifts(schedule, hangars, forklifts):
     forklift_tasks = {fl: [] for fl in forklifts}
     for ac_name, ac in schedule.aircraft_schedule.items():
         hangar = ac['Hangar']
-        start_m = time_to_minutes(ac['Arrival Time'])
-        end_m = time_to_minutes(ac['Departure Time'])
+        start_ac_m = time_to_minutes(ac['Arrival Time'])
+        end_ac_m = time_to_minutes(ac['Departure Time'])
         cargo = schedule.aircraft[ac_name]['Cargo']
         for _ in range(cargo):
             scheduled = False
-            for fl in forklifts:
-                if can_schedule_forklift(forklift_tasks[fl], start_m, start_m + 20):
-                    forklift_tasks[fl].append({'Start': start_m, 'End': start_m + 20, 'Hangar': hangar, 'Type': 'unload'})
-                    scheduled = True
+            for s in range(start_ac_m, end_ac_m - 20 + 1, 5):
+                s = round_to_nearest_five(s)
+                e = s + 20
+                if e > end_ac_m:
+                    continue
+                for fl in forklifts:
+                    if can_schedule_forklift(forklift_tasks[fl], s, e):
+                        forklift_tasks[fl].append({'Start': s, 'End': e, 'Hangar': hangar, 'Type': 'unload'})
+                        scheduled = True
+                        break
+                if scheduled:
                     break
             if not scheduled:
                 return None
@@ -171,11 +174,13 @@ def check_and_assign_forklifts(schedule, hangars, forklifts):
         hangar = truck['Hangar']
         start_m = time_to_minutes(truck['Arrival Time'])
         end_m = start_m + 5
+        scheduled = False
         for fl in forklifts:
             if can_schedule_forklift(forklift_tasks[fl], start_m, end_m):
                 forklift_tasks[fl].append({'Start': start_m, 'End': end_m, 'Hangar': hangar, 'Type': 'load'})
+                scheduled = True
                 break
-        else:
+        if not scheduled:
             return None
 
     final_schedule = schedule.clone()
@@ -183,17 +188,12 @@ def check_and_assign_forklifts(schedule, hangars, forklifts):
         final_schedule.forklift_assignments[fl] = sorted(forklift_tasks[fl], key=lambda x: x['Start'])
     return final_schedule
 
-# check if a forklift can be scheduled
 def can_schedule_forklift(assignments, start_m, end_m):
     for task in assignments:
-        task_start_m = task['Start']
-        task_end_m = task['End']
-        # check if the task overlaps with the new task
-        if not (end_m <= task_start_m or start_m >= task_end_m):
+        if not (end_m <= task['Start'] or start_m >= task['End']):
             return False
     return True
 
-# main function to generate the schedule
 def generate_schedule(meta, aircraft, trucks):
     start_time = meta['Start Time']
     stop_time = meta['Stop Time']
@@ -212,26 +212,29 @@ def generate_schedule(meta, aircraft, trucks):
             'trucks': {},
             'forklifts': {}
         }
-        for ac, details in solution.aircraft_schedule.items():
-            output['aircraft'][ac] = {
-                'Hangar': details['Hangar'],
-                'Arrival Time': details['Arrival Time'],
-                'Departure Time': details['Departure Time']
-            }
-        for truck, details in solution.truck_schedule.items():
-            output['trucks'][truck] = {
-                'Hangar': details['Hangar'],
-                'Arrival Time': details['Arrival Time'],
-                'Departure Time': details['Departure Time']
-            }
+        for ac_name in aircraft.keys():
+            if ac_name in solution.aircraft_schedule:
+                details = solution.aircraft_schedule[ac_name]
+                output['aircraft'][ac_name] = {
+                    'Hangar': details['Hangar'],
+                    'Arrival': details['Arrival Time'],
+                    'Departure': details['Departure Time']
+                }
+        for truck_name in trucks.keys():
+            if truck_name in solution.truck_schedule:
+                details = solution.truck_schedule[truck_name]
+                output['trucks'][truck_name] = {
+                    'Hangar': details['Hangar'],
+                    'Arrival': details['Arrival Time'],
+                    'Departure': details['Departure Time']
+                }
         for fl, tasks in solution.forklift_assignments.items():
             output['forklifts'][fl] = []
             for task in tasks:
                 output['forklifts'][fl].append({
                     'Hangar': task['Hangar'],
-                    'Start': minutes_to_time(task['Start']),
-                    'End': minutes_to_time(task['End']),
-                    'Type': task['Type']
+                    'Time': minutes_to_time(task['Start']),
+                    'Job': 'Unload' if task['Type'] == 'unload' else 'Load'
                 })
         return output
     else:
@@ -247,7 +250,7 @@ def generate_schedule(meta, aircraft, trucks):
 
 def main():
     if len(sys.argv) != 5:
-        print("5 arguments are required: meta_path, aircraft_path, trucks_path, schedule_path")
+        print("Usage: python scheduler.py <meta.json> <aircraft.json> <trucks.json> <schedule.json>")
         return
 
     meta_path = sys.argv[1]
@@ -260,10 +263,7 @@ def main():
     trucks = read_json(trucks_path)
     
     schedule = generate_schedule(meta, aircraft, trucks)
-    if schedule is None:
-        print("Failed to generate a valid schedule.")
-    else:
-        write_json(schedule_path, schedule)
+    write_json(schedule_path, schedule)
 
 if __name__ == "__main__":
     main()
