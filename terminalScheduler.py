@@ -1,3 +1,7 @@
+# I collaborate with Jiaying He on this assignment.
+# We watched the video "Constraint-Satisfaction Problems in Python" on youtube to learn the backtracking algorithm solution.
+# I also watched the video: "Constraint Satisfaction the AC-3 algorithm" but not used in this assignment
+
 from copy import deepcopy
 import json
 import sys
