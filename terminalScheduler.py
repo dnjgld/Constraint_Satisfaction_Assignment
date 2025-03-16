@@ -3,6 +3,7 @@
 # I learned the implementation of backtracking algorithm from https://github.com/KGB33/ClassicComputerScienceProblems/tree/c054e8fef1bcb99731f84d675368191caff086e1/CCSP/c3_ConstraintStatisfactionProblems
 # I removed the CSP library code and rewrote it
 
+import sys
 import json
 import re
 
