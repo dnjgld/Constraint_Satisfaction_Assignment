@@ -1,8 +1,8 @@
 import json
-from terminalScheduler import generate_schedule, read_json
+from terminalScheduler_from_scratch import generate_schedule, read_json
 
 def test_generate_schedule():
-    for i in range(3, 5):
+    for i in range(1, 4):
         meta_path = f"test{i}_passes/meta.json"
         aircraft_path = f"test{i}_passes/aircraft.json"
         trucks_path = f"test{i}_passes/trucks.json"
@@ -14,7 +14,6 @@ def test_generate_schedule():
 
         schedule = generate_schedule(meta, aircraft, trucks)
     
-        # 比较生成的调度和预期结果
         if schedule == expected_schedule:
             print("Test passed!")
         else:
