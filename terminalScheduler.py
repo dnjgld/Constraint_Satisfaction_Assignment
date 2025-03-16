@@ -31,6 +31,20 @@ def minutes_to_time(minutes_m):
     minutes = minutes_m % 60
     return hours * 100 + minutes
 
+def check_overlap(start_time1, end_time1, start_time2, end_time2):
+    # function to check if two time intervals overlap
+    if end_time1 > start_time2 and end_time1 <= end_time2:
+        return True
+    elif start_time1 < end_time2 and start_time1 >= start_time2:
+        return True
+    elif start_time1 < start_time2 and end_time1 > end_time2:
+        return True
+    elif start_time1 > start_time2 and end_time1 < end_time2:
+        return True
+    else:
+        return False
+    
+
 #######################
 #### SCP functions ####
 #######################
@@ -75,7 +89,7 @@ def create_variables_and_domains(meta, aircraft, trucks):
     #       hangar ∈ hangars, 
     #       arrival time > aircraft['Time'], // Time of the aircraft arrives hanger is after the aircraft arrives the terminal
     #       start_time < arrival time < departure time < stop_time, 
-    #       departure time - arrival time = 20 + 5*n // at least 20 minutes to unload cargo
+    #       departure time - arrival time = 20 + 5*n // at least 20 minutes to unload cargo, 
     for aircraft_name, aircraft_info in aircraft.items():
         domains[aircraft_name] = []
         aircraft_time = time_to_minutes(aircraft_info['Time'])
@@ -142,14 +156,14 @@ def create_variables_and_domains(meta, aircraft, trucks):
 
     return variables, domains, aircraft_names, truck_names, forklifts_tasks
 
-def backtracking(unassign_variables, domains, assignments, aircraft_names, truck_name, forklifts_tasks):
+def backtracking(unassign_variables, domains, assignments, aircraft_names, truck_names, forklifts_tasks):
     # if all variables are assigned, return the assignments
     if unassign_variables == []:
         return assignments
     
-    # unassigned_num = len(unassign_variables)
-    # total = len(domains.keys())
-    # print(f"Assigned variables: {total - unassigned_num}/{total}")
+    unassigned_num = len(unassign_variables)
+    total = len(domains.keys())
+    print(f"Assigned variables: {total - unassigned_num}/{total}")
 
     # if not, select the first unassigned variable
     var = unassign_variables[0]
@@ -161,9 +175,9 @@ def backtracking(unassign_variables, domains, assignments, aircraft_names, truck
         new_assignments[var] = value
 
         # check if the new assignment satisfies the constraints 
-        if check_constraints(new_assignments, aircraft_names, truck_name, forklifts_tasks):
+        if check_constraints(new_assignments, aircraft_names, truck_names, forklifts_tasks, var):
             # if the assignment is valid, recursively assign the next variable
-            result = backtracking(unassign_variables[1:], domains, new_assignments, aircraft_names, truck_name, forklifts_tasks)
+            result = backtracking(unassign_variables[1:], domains, new_assignments, aircraft_names, truck_names, forklifts_tasks)
             if result:
                 return result
         # if the assignment is invalid, try the next value in the domain
@@ -171,61 +185,66 @@ def backtracking(unassign_variables, domains, assignments, aircraft_names, truck
     # if no assignment is valid, return None
     return None
 
-def check_constraints(assignment, aircraft_names, truck_name, forklifts_tasks):
-    aircraft_assignment = []
-    truck_assignment = []
-    forklift_assignment = []
+def check_constraints(assignment, aircraft_names, truck_names, forklifts_tasks, var):
+    if var in aircraft_names:
+        # check aircraft constraints
+        new_aircraft = assignment[var]
 
-    for variable in assignment.keys():
-        if variable in aircraft_names:
-            aircraft_assignment.append(assignment[variable])
-        elif variable in truck_name:
-            truck_assignment.append(assignment[variable])
-        elif variable in forklifts_tasks:
-            forklift_assignment.append(assignment[variable])
+        # constraint1: the hanger cannot be assigned to more than one aircraft at the same time
+        for variable in assignment.keys():
+            if variable in aircraft_names:
+                if variable == var:
+                    continue
+                # if two aircraft assigned to the same hanger have overlapping time, return False
+                if assignment[variable][0] == new_aircraft[0]:
+                    if check_overlap(new_aircraft[1], new_aircraft[2], assignment[variable][1], assignment[variable][2]):
+                        return False
+        
+                    
+    elif var in truck_names:
+        # check truck constraints
 
-    # constraint1: the hanger cannot be assigned to more than one aircraft at the same time
-    for i in range(len(aircraft_assignment)):
-        for j in range(i + 1, len(aircraft_assignment)):
-            # if two aircrafts assigned to the same hanger have overlapping time, return False
-            if aircraft_assignment[i][0] == aircraft_assignment[j][0]:
-                # one aircraft arrives before the other leaves
-                if aircraft_assignment[i][2] > aircraft_assignment[j][1] and aircraft_assignment[i][2] <= aircraft_assignment[j][2]:
-                    return False
-                if aircraft_assignment[j][2] > aircraft_assignment[i][1] and aircraft_assignment[j][2] < aircraft_assignment[i][2]:
-                    return False
-                
-    # constraint2: the hanger cannot be assigned to more than one truck at the same time
-    for i in range(len(truck_assignment)):
-        for j in range(i + 1, len(truck_assignment)):
-            # if two trucks assigned to the same hanger have overlapping time, return False
-            if truck_assignment[i][0] == truck_assignment[j][0]:
-                # one truck arrives before the other leaves
-                if truck_assignment[i][2] > truck_assignment[j][1] and truck_assignment[i][2] <= truck_assignment[j][2]:
-                    return False
-                if truck_assignment[j][2] > truck_assignment[i][1] and truck_assignment[j][2] <= truck_assignment[i][2]:
-                    return False
-                
-    # constraint3: the forklift cannot be assigned to more than one task at the same time
-    for i in range(len(forklift_assignment)):
-        for j in range(i + 1, len(forklift_assignment)):
-            # if two tasks uses the same forklift have overlapping time, return False
-            if forklift_assignment[i][0] == forklift_assignment[j][0]:
-                if forklift_assignment[i][4] == "Load":
-                    duration = 5
-                else:
-                    duration = 20
+        new_truck = assignment[var]
+        # constraint2: the hanger cannot be assigned to more than one truck at the same time
+        for variable in assignment.keys():
+            if variable in truck_names:
+                if variable == var:
+                    continue
+                # if two aircraft assigned to the same hanger have overlapping time, return False
+                if assignment[variable][0] == new_truck[0]:
+                    if check_overlap(new_truck[1], new_truck[2], assignment[variable][1], assignment[variable][2]):
+                        return False
+    else:
+        # aircraft and truck check can be skipped
+        new_forklift_task = assignment[var]
 
-                if forklift_assignment[i][3] <= forklift_assignment[j][3] and forklift_assignment[i][3] + duration > forklift_assignment[j][3]:
-                    return False
-                if forklift_assignment[j][3] <= forklift_assignment[i][3] and forklift_assignment[j][3] + duration > forklift_assignment[i][3]:
-                    return False
-    
-    # constraint4: the forklift unload tasks should be assigned after the aircraft arrives and the load tasks should be assigned when the truck arrives
-    assigned_truck = []
-    for task in forklift_assignment:
-        if task[4] == "Unload":
-            fl, aircraft, h, time, job = task
+        # constraint3: the forklift cannot be assigned to more than one task at the same time
+        for variable in assignment.keys():
+            if variable in forklifts_tasks:
+                if variable == var:
+                    continue
+                # if two tasks uses the same forklift have overlapping time, return False
+                if assignment[variable][0] == new_forklift_task[0]:
+                    time1 = new_forklift_task[3]
+                    time2 = assignment[variable][3]
+
+                    if new_forklift_task[4] == "Unload":
+                        duration1 = 20
+                    else:
+                        duration1 = 5
+
+                    if assignment[variable][4] == "Unload":
+                        duration2 = 20
+                    else:
+                        duration2 = 5
+                    
+                    if check_overlap(time1, time1 + duration1, time2, time2 + duration2):
+                        return False
+
+                    
+        # constraint4: the forklift unload tasks should be assigned after the aircraft arrives and the load tasks should be assigned when the truck arrives
+        if new_forklift_task[4] == "Unload":
+            _, aircraft, h, time, _ = new_forklift_task
             if aircraft in aircraft_names:
                 if h != assignment[aircraft][0]:
                     return False
@@ -234,28 +253,44 @@ def check_constraints(assignment, aircraft_names, truck_name, forklifts_tasks):
             else:
                 return False
         else:
-            fl, truck, h, time, job = task
-            if truck in truck_name:
-                if truck in assigned_truck:
+            # get the list of trucks that have been assigned to the forklifts
+            assigned_trucks = []
+            for variable in assignment:
+                if variable in forklifts_tasks:
+                    if variable == var:
+                        continue
+                    else:
+                        if assignment[variable][4] == "Load":
+                            assigned_trucks.append(assignment[variable][1])
+
+            _, truck, h, time, _ = new_forklift_task
+            if truck in truck_names:
+                if truck in assigned_trucks:
                     return False
-                assigned_truck.append(truck)
-                
                 if h != assignment[truck][0]:
                     return False
-                
-                if not (assignment[truck][1] <= time < assignment[truck][2]):
+                if (assignment[truck][1] != time):
                     return False
             else:
                 return False
-    
-    # constraint5: ensure unload tasks are completed before load tasks
-    for variable in assignment.keys():
-        if re.search(r"_unload_", variable):
-            fl, aircraft, hangar1, time1, job = assignment[variable]
-            load_task = f"{aircraft}_load_{variable.split('_')[-1]}"
+                
+        # constraint5: ensure unload tasks are completed before load tasks
+        if re.search(r"_unload_", var):
+            _, _, hangar1, time1, job = assignment[var]
+            load_task = f"{var.split('_unload_')[0]}_load_{var.split('_load_')[-1]}"
             if load_task in assignment:
                 _, _, hangar2, time2, _ = assignment[load_task]
                 if time1 + 20 > time2:
+                    return False
+                if hangar1 != hangar2:
+                    return False
+                
+        elif re.search(r"_load_", var):
+            _, _, hangar1, time1, job = assignment[var]
+            unload_task = f"{var.split('_load_')[0]}_unload_{var.split('_load_')[-1]}"
+            if unload_task in assignment:
+                _, _, hangar2, time2, _ = assignment[unload_task]
+                if time1 < time2 + 20:
                     return False
                 if hangar1 != hangar2:
                     return False
