@@ -1,4 +1,8 @@
-import sys
+# I collaborate with Jiaying He on this assignment.
+# I watched the video "Constraint-Satisfaction Problems in Python" on youtube to learn the backtracking algorithm solution.
+# I learned the implementation of backtracking algorithm from https://github.com/KGB33/ClassicComputerScienceProblems/tree/c054e8fef1bcb99731f84d675368191caff086e1/CCSP/c3_ConstraintStatisfactionProblems
+# I removed the CSP library code and rewrote it
+
 import json
 import re
 
@@ -13,9 +17,6 @@ def read_json(file_path):
 def write_json(file_path, data):
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=4)
-
-def round_to_nearest_five(minutes):
-    return 5 * round(minutes / 5)
 
 def time_to_minutes(time):
     # convert time in minutes after midnight
@@ -145,6 +146,10 @@ def backtracking(unassign_variables, domains, assignments, aircraft_names, truck
     if unassign_variables == []:
         return assignments
     
+    # unassigned_num = len(unassign_variables)
+    # total = len(domains.keys())
+    # print(f"Assigned variables: {total - unassigned_num}/{total}")
+
     # if not, select the first unassigned variable
     var = unassign_variables[0]
 
@@ -257,7 +262,6 @@ def check_constraints(assignment, aircraft_names, truck_name, forklifts_tasks):
     return True
 
 def generate_schedule(meta, aircraft, trucks):
-
     # create variables and domains
     variables, domains, aircraft_names, truck_names, forklifts_tasks = create_variables_and_domains(meta, aircraft, trucks)
 
@@ -304,7 +308,6 @@ def generate_schedule(meta, aircraft, trucks):
             "trucks": None,
             "forklifts": None
         }
-
 
 def main():
     if len(sys.argv) != 5:
