@@ -161,9 +161,9 @@ def backtracking(unassign_variables, domains, assignments, aircraft_names, truck
     if unassign_variables == []:
         return assignments
     
-    unassigned_num = len(unassign_variables)
-    total = len(domains.keys())
-    print(f"Assigned variables: {total - unassigned_num}/{total}")
+    # unassigned_num = len(unassign_variables)
+    # total = len(domains.keys())
+    # print(f"Assigned variables: {total - unassigned_num}/{total}")
 
     # if not, select the first unassigned variable
     var = unassign_variables[0]
