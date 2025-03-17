@@ -67,7 +67,8 @@ def create_variables_and_domains(meta, aircraft, trucks):
         variables.append(aircraft_name)
         aircraft_names.append(aircraft_name)
 
-    # forklift_tasks (forklift, hangar, arrival time, job) // each cargo has an unload and a load task for forklift
+    # I previously put the truck variables before the forklift tasks, but it takes much more time to run the backtracking algorithm
+    # forklift_tasks (forklift, _, hangar, arrival time, job) // each cargo has an unload and a load task for forklift
     for aircraft_name, aircraft_info in aircraft.items():
         # calculate the number of cargo for forklift to unload and load
         cargo_num = aircraft_info['Cargo']
@@ -88,7 +89,7 @@ def create_variables_and_domains(meta, aircraft, trucks):
     # create the domains for aircrafts:
     #   aircrafts: 
     #       hangar ∈ hangars, 
-    #       arrival time > aircraft['Time'], // Time of the aircraft arrives hanger is after the aircraft arrives the terminal
+    #       arrival time > aircraft['Time'], // Time of the aircraft arrives hangar is after the aircraft arrives the terminal
     #       start_time < arrival time < departure time < stop_time, 
     #       departure time - arrival time = 20 + 5*n // at least 20 minutes to unload cargo, 
     for aircraft_name, aircraft_info in aircraft.items():
@@ -130,7 +131,6 @@ def create_variables_and_domains(meta, aircraft, trucks):
 
             for hangar in hangars:
                 # unload tasks take 20 minutes
-
                 for time1 in range(max(start_time, aircraft_arrival_time), stop_time - 25 + 1, 5):
                     for forklift1 in forklifts:
                         domains[unload_task].append((forklift1, aircraft_name, hangar, time1, 'Unload'))
@@ -144,9 +144,9 @@ def create_variables_and_domains(meta, aircraft, trucks):
     # create the domains for trucks:
     #   trucks:
     #       hangar ∈ hangars, 
-    #       arrival time > truck['Time'], // Time of the truck arrives hanger is after the truck arrives the terminal
+    #       arrival time > truck['Time'], // Time of the truck arrives hangar is after the truck arrives the terminal
     #       arrival time ∈ [start_time, stop_time - 5], 
-    #       departure time = arrival time + 5 // assume the truck always starts loading immediately after arrival
+    #       departure time = arrival time + 5 // assume the truck starts loading immediately after arrival the hangar
     for truck_name, truck_time in trucks.items():
         domains[truck_name] = []
         truck_time = time_to_minutes(truck_time)
@@ -170,7 +170,7 @@ def backtracking(unassign_variables, domains, assignments, aircraft_names, truck
     # select the variable with the smallest domain to assign next
     nextvar = unassign_variables[0]
     
-    # assign possible value in the domain to the variable
+    # assign value in the domain to the variable
     for value in domains[nextvar]:
 
         # check if the new assignment satisfies the constraints 
@@ -190,14 +190,15 @@ def backtracking(unassign_variables, domains, assignments, aircraft_names, truck
     return None
 
 def check_constraints(assignment, aircraft_names, truck_names, forklifts_tasks, var, value):
+    # To reduce the constraints check, we only check the constraints related to the new assignment
     if var in aircraft_names:
         # check aircraft constraints
         new_aircraft = value
 
-        # constraint1: the hanger cannot be assigned to more than one aircraft at the same time
+        # constraint1: the hangar cannot be assigned to more than one aircraft at the same time
         for variable in assignment.keys():
             if variable in aircraft_names:
-                # if two aircraft assigned to the same hanger have overlapping time, return False
+                # if two aircraft assigned to the same hangar have overlapping time, return False
                 if assignment[variable][0] == new_aircraft[0]:
                     if check_overlap(new_aircraft[1], new_aircraft[2], assignment[variable][1], assignment[variable][2]):
                         # print("violate constraint1")
@@ -205,7 +206,7 @@ def check_constraints(assignment, aircraft_names, truck_names, forklifts_tasks, 
 
                 
     elif var in forklifts_tasks:
-        # aircraft check can be skipped
+        # check forklift constraints
         new_forklift_task = value
 
         # constraint2: ensure unload tasks are completed before load tasks
@@ -233,7 +234,7 @@ def check_constraints(assignment, aircraft_names, truck_names, forklifts_tasks, 
                     # print("violate constraint2")
                     return False
                 
-        # constraint3: the forklift unload tasks should be assigned after the aircraft arrives and the load tasks should be assigned to a truck that has not been assigned to a forklift
+        # constraint3: the forklift unload tasks should be assigned after the aircraft arrives and the load tasks should not be assigned to a truck that already has a forklift task
         if new_forklift_task[4] == "Unload":
             _, aircraft, h, time, _ = new_forklift_task
             if aircraft in assignment:
@@ -282,10 +283,10 @@ def check_constraints(assignment, aircraft_names, truck_names, forklifts_tasks, 
         # check truck constraints
         new_truck = value
     
-        # constraint5: the hanger cannot be assigned to more than one truck at the same time
+        # constraint5: the hangar cannot be assigned to more than one truck at the same time
         for variable in assignment.keys():
             if variable in truck_names:
-                # if two aircraft assigned to the same hanger have overlapping time, return False
+                # if two aircraft assigned to the same hangar have overlapping time, return False
                 if assignment[variable][0] == new_truck[0]:
                     if check_overlap(new_truck[1], new_truck[2], assignment[variable][1], assignment[variable][2]):
                         # print("violate constraint5")
@@ -309,10 +310,10 @@ def generate_schedule(meta, aircraft, trucks):
     # initialize assignments
     assignments = {}
 
-    # assign variables and check constraints using backtracking
+    # assign variables and check constraints in backtracking
     solution = backtracking(variables, domains, assignments, aircraft_names, truck_names, forklifts_tasks)
 
-    # format the solution
+    # format the output
     if solution:
         output = {
             'aircraft': {},
@@ -351,6 +352,7 @@ def generate_schedule(meta, aircraft, trucks):
         }
 
 def main():
+    # if not 5 arguments are provided, return a reminder
     if len(sys.argv) != 5:
         print("Usage: python scheduler.py <meta.json> <aircraft.json> <trucks.json> <schedule.json>")
         return
