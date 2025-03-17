@@ -1,8 +1,9 @@
 import json
-from terminalScheduler_from_scratch import generate_schedule, read_json
+import time
+from terminalScheduler import generate_schedule, read_json
 
 def test_generate_schedule():
-    for i in range(1, 4):
+    for i in range(1, 5):
         meta_path = f"test{i}_passes/meta.json"
         aircraft_path = f"test{i}_passes/aircraft.json"
         trucks_path = f"test{i}_passes/trucks.json"
@@ -12,12 +13,15 @@ def test_generate_schedule():
         trucks = read_json(trucks_path)
         expected_schedule = read_json(expected_schedule_path)
 
+        start_time = time.time()  # Start time
         schedule = generate_schedule(meta, aircraft, trucks)
-    
+        end_time = time.time()  # End time
+        elapsed_time = end_time - start_time  # Elapsed time
+
         if schedule == expected_schedule:
-            print("Test passed!")
+            print(f"Test {i} passed! Time taken: {elapsed_time:.2f} seconds")
         else:
-            print("Test failed!")
+            print(f"Test {i} failed! Time taken: {elapsed_time:.2f} seconds")
             print("Expected:")
             print(json.dumps(expected_schedule, indent=4))
             print("Got:")
