@@ -12,10 +12,12 @@ import re
 #######################
 
 def read_json(file_path):
+    # read json file to dictionary
     with open(file_path, 'r') as file:
         return json.load(file)
 
 def write_json(file_path, data):
+    # write dictionary to json file
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=4)
 
@@ -25,11 +27,11 @@ def time_to_minutes(time):
     minutes = time % 100
     return hours * 60 + minutes
 
-def minutes_to_time(minutes_m):
+def minutes_to_time(minutes):
     # convert minutes after midnight to time
-    hours = minutes_m // 60
-    minutes = minutes_m % 60
-    return hours * 100 + minutes
+    HH = minutes // 60
+    MM = minutes % 60
+    return HH * 100 + MM
 
 def check_overlap(start_time1, end_time1, start_time2, end_time2):
     # function to check if two time intervals overlap
@@ -173,14 +175,15 @@ def backtracking(unassign_variables, domains, assignments, aircraft_names, truck
     # assign value in the domain to the variable
     for value in domains[nextvar]:
 
-        # check if the new assignment satisfies the constraints 
+        # check if the new assignments satisfies the constraints 
         if check_constraints(assignments, aircraft_names, truck_names, forklifts_tasks, nextvar, value):
 
-            # create a new assignment to avoid modifying the original assignment
+            # create new assignments to avoid modifying the original assignment
             new_assignments = assignments.copy()
             new_assignments[nextvar] = value
 
-            # if the assignment is valid, recursively assign the next variable
+            # if the new assignments are valid, recursively assign the next variable
+            # remove the assigned variable from the unassigned variables
             result = backtracking(unassign_variables[1:], domains, new_assignments, aircraft_names, truck_names, forklifts_tasks)
             if result:
                 return result
